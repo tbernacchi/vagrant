@@ -38,10 +38,10 @@ config.vm.define "zfs" do |zfs|
   vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', './secondDisk.vdi']
   vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', './thirdDisk.vdi']
   vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 3, '--device', 0, '--type', 'hdd', '--medium', './fourthDisk.vdi']
-	vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 4, '--device', 0, '--type', 'hdd', '--medium', './fifthDisk.vdi']
-	vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 5, '--device', 0, '--type', 'hdd', '--medium', './sixthDisk.vdi']
-	vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 6, '--device', 0, '--type', 'hdd', '--medium', './seventhDisk.vdi']
-	vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 7, '--device', 0, '--type', 'hdd', '--medium', './eighth.vdi']
+  vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 4, '--device', 0, '--type', 'hdd', '--medium', './fifthDisk.vdi']
+  vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 5, '--device', 0, '--type', 'hdd', '--medium', './sixthDisk.vdi']
+  vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 6, '--device', 0, '--type', 'hdd', '--medium', './seventhDisk.vdi']
+  vb.customize ['storageattach', :id,  '--storagectl', 'SAS Controller3', '--port', 7, '--device', 0, '--type', 'hdd', '--medium', './eighth.vdi']
   end
 end
 end
