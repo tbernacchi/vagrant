@@ -1,0 +1,108 @@
+# -*- mode: ruby -*-
+# # vi: set ft=ruby :
+
+$alias = <<SCRIPT
+#!/bin/bash
+cat > ~root.bashrc <<EOF  
+# .bashrc
+# User specific aliases and functions
+
+alias rm='rm'
+alias cp='cp'
+alias mv='mv' 
+alias ll='ls -lthr --color=auto'
+
+# Source global definitions
+ if [ -f /etc/bashrc ]; then
+ 	. /etc/bashrc
+ fi
+EOF
+SCRIPT
+
+##HOSTS
+$host = <<SCRIPT
+#!/bin/bash
+cat > /etc/hosts <<EOF
+127.0.0.1	localhost
+192.168.33.102	k8sflugel
+EOF
+SCRIPT
+
+##K8S
+$k8s = <<SCRIPT
+export VERSION=18.09 && curl -sSL get.docker.com | sh > /dev/null 2>&1
+
+cat > /etc/docker/daemon.json <<-EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker 
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+sudo modprobe br_netfilter
+echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+echo '1' > /proc/sys/net/bridge/bridge-nf-call-ip6tables
+echo '1' > /proc/sys/net/ipv4/ip_forward
+sudo sysctl -p
+sudo apt-get update && sudo apt-get install -y apt-transport-https
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee -a /etc/apt/sources.list.d/kubernetes.list && sudo apt-get update
+sudo apt install -y kubeadm=1.15.0-00 kubelet=1.15.0-00 kubernetes-cni
+sudo kubeadm init --image-repository registry.aliyuncs.com/google_containers --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.33.102 --kubernetes-version=v1.15.0
+mkdir -p /home/vagrant/.kube
+sudo cp -i /etc/kubernetes/admin.conf /home/vagrant/.kube/config
+sudo chown vagrant:vagrant -R /home/vagrant/.kube/
+export KUBECONFIG=/home/vagrant/.kube/config
+echo "export KUBECONFIG=/home/vagrant/.kube/config" | tee -a ~/.bashrc
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+kubectl taint nodes --all node-role.kubernetes.io/master-
+SCRIPT
+
+##Python 
+$python = <<SCRIPT
+cat > /home/vagrant/list_pods.py <<-EOF
+#!/usr/bin/python
+from kubernetes import client, config
+
+config.load_kube_config()
+
+v1 = client.CoreV1Api()
+print("Listing pods with their IPs:")
+ret = v1.list_pod_for_all_namespaces(watch=False)
+for i in ret.items:
+    print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+EOF
+echo "python /home/vagrant/list_pods.py" >> /home/vagrant/.profile
+SCRIPT
+
+##Vagrant
+Vagrant.configure("2") do |config|
+
+##Box
+config.vm.box = "tadeuuuuu/k8s"
+ 
+ config.vm.define :k8s do |k8s|
+ k8s.vm.provider :virtualbox do |v|
+   v.name = "k8sflugel"
+   v.cpus = 2
+   v.customize ["modifyvm", :id, "--memory", "2048"]
+ end
+
+ k8s.vm.network :private_network, ip: "192.168.33.102"
+ k8s.vm.hostname = "k8sflugel"
+ k8s.vm.provision :shell, :inline => $alias
+ k8s.vm.provision :shell, :inline => $host
+ k8s.vm.provision :shell, :inline => $k8s
+ k8s.vm.provision :shell, :inline => $python
+ k8s.vm.provision :hostmanager
+ end
+end
+
