@@ -1,0 +1,131 @@
+# -*- mode: ruby -*-
+# # vi: set ft=ruby :
+
+$alias = <<SCRIPT
+#!/bin/bash
+cat > ~root.bashrc <<EOF  
+# .bashrc
+# User specific aliases and functions
+
+alias rm='rm'
+alias cp='cp'
+alias mv='mv'
+alias ll='ls -lthr --color=auto'
+
+# Source global definitions
+ if [ -f /etc/bashrc ]; then
+  . /etc/bashrc
+ fi
+EOF
+SCRIPT
+
+##Disable selinux, iptables e enable NTP
+$node_script = <<SCRIPT
+#!/bin/bash
+
+Disable selinux:
+sed -i 's/^\(SELINUX\s*=\s*\).*$/\1disabled/' /etc/selinux/config
+
+##Setup NTP:
+cp -pr /etc/localtime /etc/localtime.bkp
+ln -s /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+
+yum install -y ntp ntpdate
+systemctl enable ntpd
+
+cat > /etc/ntpd.conf <<EOF
+driftfile /var/lib/ntp/drift
+restrict default kod nomodify notrap nopeer noquery
+restrict -6 default kod nomodify notrap nopeer noquery
+restrict 127.0.0.1
+restrict -6 ::1
+server a.st1.ntp.br
+server b.st1.ntp.br
+server c.st1.ntp.br
+server d.st1.ntp.br
+server a.ntp.br
+server b.ntp.br
+server c.ntp.br
+server gos.ntp.br
+includefile /etc/ntp/crypto/pw
+keys /etc/ntp/keys
+EOF
+
+ntpdate -b -v a.st1.ntp.br
+systemctl start ntpd
+
+##Disable Firewall:
+yum remove --purge firewalld -y
+iptables -F
+systemctl stop iptables
+systemctl disable iptables
+SCRIPT
+
+##HOSTS
+$host = <<SCRIPT
+#!/bin/bash
+cat > /etc/hosts <<EOF
+127.0.0.1 localhost
+192.168.33.101 mongo01
+192.168.33.102 mongo02
+192.168.33.103 mongo03
+EOF
+SCRIPT
+
+file_2_disk1 = '/Users/tadeu/.vagrant.d/second_disk.vdi'
+file_2_disk2 = '/Users/tadeu/.vagrant.d/thirdy_disk.vdi'
+file_2_disk3 = '/Users/tadeu/.vagrant.d/fourty_disk.vdi'
+
+##Vagrant
+Vagrant.configure("2") do |config|
+
+##Box
+config.vm.box = "bento/centos-7"
+ 
+ config.vm.define :mongo01 do |mongo01|
+ mongo01.vm.provider :virtualbox do |v|
+   v.name = "mongo01"
+   v.cpus = 2
+   v.customize ["modifyvm", :id, "--memory", "1024"]
+   v.customize ['createhd', '--filename', file_2_disk1, '--size', 15 * 1024]
+   v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_2_disk1]
+ end
+ mongo01.vm.network :private_network, ip: "192.168.33.101"
+ mongo01.vm.hostname = "mongo01"
+ mongo01.vm.provision :shell, :inline => $alias
+ mongo01.vm.provision :shell, :inline => $host
+ mongo01.vm.provision :hostmanager
+ end
+
+ config.vm.define :mongo02 do |mongo02|
+ mongo02.vm.provider :virtualbox do |v|
+   v.name = "mongo02"
+   v.cpus = 2
+   v.customize ["modifyvm", :id, "--memory", "1024"]
+   v.customize ['createhd', '--filename', file_2_disk2, '--size', 15 * 1024]
+   v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_2_disk2]
+ end
+ mongo02.vm.network :private_network, ip: "192.168.33.102"
+ mongo02.vm.hostname = "mongo02"
+ mongo02.vm.provision :shell, :inline => $alias
+ mongo02.vm.provision :shell, :inline => $host
+ mongo02.vm.provision :hostmanager
+ end
+
+ config.vm.define :mongo03 do |mongo03|
+ mongo03.vm.provider :virtualbox do |v|
+   v.name = "mongo03"
+   v.cpus = 2
+   v.customize ["modifyvm", :id, "--memory", "1024"]
+   v.customize ['createhd', '--filename', file_2_disk3, '--size', 15 * 1024]
+   v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_2_disk3]
+ end
+ mongo03.vm.network :private_network, ip: "192.168.33.103"
+ mongo03.vm.hostname = "mongo03"
+ mongo03.vm.provision :shell, :inline => $alias
+ mongo03.vm.provision :shell, :inline => $host
+ mongo03.vm.provision :hostmanager
+ end
+
+end
+
