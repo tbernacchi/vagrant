@@ -1,4 +1,4 @@
-# Vagrant environment for a standalone Kubernetes cluster
+# Vagrantfile for a standalone Kubernetes cluster
 > This procedure was performed on Apple M2 chip. [More info](https://www.unixarena.com/2022/09/virtual-machine-on-apple-mac-chip-m1-m2-fusion-vagrant.html/)
 
 This repo contains a Vagrantfile to spin up a standalone kubernetes cluster using [kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/).
