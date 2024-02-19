@@ -1,0 +1,23 @@
+# -*- mode: ruby -*-
+# # vi: set ft=ruby :
+
+##Vagrant
+Vagrant.configure("2") do |config|
+
+#Box
+config.vm.box = "bento/ubuntu-20.04-arm64"
+ 
+ config.vm.define :mycksansible do |mycksansible|
+ mycksansible.vm.provider :virtualbox do |v|
+   v.name = "mycksansible"
+   v.cpus = 2
+   v.customize ["modifyvm", :id, "--memory", "4096"]
+   v.customize ['createhd', '--filename', 'file_2_disk1', '--size', 50 * 1024]
+   v.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', 'file_2_disk1']
+ end
+ mycksansible.vm.network :private_network, ip: "192.168.33.106"
+ mycksansible.vm.hostname = "mycksansible"
+ mycksansible.vm.provision :hostmanager
+ end
+
+end
